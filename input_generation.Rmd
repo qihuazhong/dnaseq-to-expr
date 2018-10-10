@@ -1,0 +1,77 @@
+---
+title: "Project Bulbasaur - Input Generation"
+output: html_notebook
+---
+
+
+
+# Get gene annotations
+```{r, message=FALSE}
+library(BiocInstaller)
+library("ChIPpeakAnno")
+
+data("TSS.human.GRCh37")
+hg19_genes <- TSS.human.GRCh37
+
+# keep only standard chrs
+hg19_genes_std <- keepStandardChromosomes(hg19_genes, pruning.mode = "coarse")
+
+# Map to USCS seqlevel style
+newStyle <- mapSeqlevels(seqlevels(hg19_genes_std), "UCSC")
+hg19_genes_std <- renameSeqlevels(hg19_genes_std, newStyle)
+
+# read chromosomes sized
+chrom.sizes <- read.table("~/projects/bulbasaur/data//hg19.chrom.sizes", col.names = c("chr", "size"))
+
+```
+
+
+#### Remove genes with out-of-bound promoters
+```{r}
+# get tss
+tss <- resize(hg19_genes_std, 1)
+
+# genes close to the start of chromosomes
+genes_to_remove <- names(tss[start(tss) < 20000])
+
+# genes close to the end of chromosomes
+for (i in (1:length(tss))){
+    if (chrom.sizes[chrom.sizes$chr %in% as.character(seqnames(tss[i])),]$size - start(tss[i]) < 20000){
+        genes_to_remove <- c(genes_to_remove, names(tss[i]))
+    }
+}
+
+input_genes <- hg19_genes_std[!(names(hg19_genes_std) %in% genes_to_remove)]
+```
+
+
+
+#### Get ranges flanking the TSSs
+```{r}
+input_granges <- promoters(input_genes, 20000, 20000)
+
+
+#### Load hg19 sequence
+library("BSgenome.Hsapiens.UCSC.hg19")
+hg19 <- BSgenome.Hsapiens.UCSC.hg19
+
+input_seqence <- getPromoterSeq(input_genes, hg19, 20000, 20000)
+
+# export sequnce files into fasta format
+writeXStringSet(input_seqence, file="projects/bulbasaur/data/input_sequence.fa", width=80)
+```
+
+
+## Input data analysis
+```{r}
+# Total number of genes as input
+print(length(input_genes))
+
+# Total number of bps covered:
+print(sum(lengths(reduce(input_granges))))
+
+# Alphabet Frequency
+print(colSums(alphabetFrequency(input_seqence)))
+```
+
+
