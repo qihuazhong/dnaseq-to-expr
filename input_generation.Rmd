@@ -28,50 +28,86 @@ chrom.sizes <- read.table("~/projects/bulbasaur/data//hg19.chrom.sizes", col.nam
 
 #### Remove genes with out-of-bound promoters
 ```{r}
+flank_size <- 1000
 # get tss
 tss <- resize(hg19_genes_std, 1)
 
-# genes close to the start of chromosomes
-genes_to_remove <- names(tss[start(tss) < 20000])
+# remove genes close to the start of chromosomes
+genes_to_remove <- NULL
+genes_test <- NULL
+genes_val <- NULL
 
-# genes close to the end of chromosomes
+# remove genes close to the end of chromosomes
 for (i in (1:length(tss))){
-    if (chrom.sizes[chrom.sizes$chr %in% as.character(seqnames(tss[i])),]$size - start(tss[i]) < 20000){
+    chr_name <- as.character(seqnames(tss[i]))
+    if (chrom.sizes[chrom.sizes$chr %in% chr_name,]$size - start(tss[i]) < flank_size | start(tss[i]) < flank_size){
+        # remove genes close to the end of chromosomes
         genes_to_remove <- c(genes_to_remove, names(tss[i]))
+    } else if (chr_name %in% c("chr8", "chr9")){
+        # remove genes in chr8 and chr9 for test
+        genes_to_remove <- c(genes_to_remove, names(tss[i]))
+        # add to test
+        genes_test <- c(genes_test, names(tss[i]))
+    } else if (chr_name %in% c("chr7")) {
+        # remove genes in chr8 and chr9 for test
+        genes_to_remove <- c(genes_to_remove, names(tss[i]))
+        # remove genes in chr7 for validation
+        genes_val <- c(genes_val, names(tss[i]))
     }
 }
 
-input_genes <- hg19_genes_std[!(names(hg19_genes_std) %in% genes_to_remove)]
+genes_train <- hg19_genes_std[!(names(hg19_genes_std) %in% genes_to_remove)]
+genes_val <- hg19_genes_std[(names(hg19_genes_std) %in% genes_val)]
+genes_test <- hg19_genes_std[(names(hg19_genes_std) %in% genes_test)]
+
 ```
 
 
 
 #### Get ranges flanking the TSSs
 ```{r}
-input_granges <- promoters(input_genes, 20000, 20000)
-
+granges_train <- promoters(genes_train, flank_size, flank_size)
+granges_val <- promoters(genes_val, flank_size, flank_size)
+granges_test <- promoters(genes_test, flank_size, flank_size)
 
 #### Load hg19 sequence
 library("BSgenome.Hsapiens.UCSC.hg19")
 hg19 <- BSgenome.Hsapiens.UCSC.hg19
 
-input_seqence <- getPromoterSeq(input_genes, hg19, 20000, 20000)
+library(GenomicFeatures)
 
-# export sequnce files into fasta format
-writeXStringSet(input_seqence, file="projects/bulbasaur/data/input_sequence.fa", width=80)
+seqence_train <- getPromoterSeq(genes_train, hg19, flank_size, flank_size)
+seqence_val <- getPromoterSeq(genes_val, hg19, flank_size, flank_size)
+seqence_test <- getPromoterSeq(genes_test, hg19, flank_size, flank_size)
+
+# export sequence files into fasta format
+
+file.create("~/projects/bulbasaur/data/sequence_train.fa")
+file.create("~/projects/bulbasaur/data/sequence_val.fa")
+file.create("~/projects/bulbasaur/data/sequence_test.fa")
+
+writeXStringSet(seqence_train, file="~/projects/bulbasaur/data/sequence_train.fa", width=80)
+writeXStringSet(seqence_val, file="~/projects/bulbasaur/data/sequence_val.fa", width=80)
+writeXStringSet(seqence_test, file="~/projects/bulbasaur/data/sequence_test.fa", width=80)
 ```
 
 
 ## Input data analysis
 ```{r}
 # Total number of genes as input
-print(length(input_genes))
+print(length(genes_train))
+print(length(genes_val))
+print(length(genes_test))
 
 # Total number of bps covered:
-print(sum(lengths(reduce(input_granges))))
+print(sum(lengths(reduce(granges_train))))
+print(sum(lengths(reduce(granges_val))))
+print(sum(lengths(reduce(granges_test))))
 
 # Alphabet Frequency
-print(colSums(alphabetFrequency(input_seqence)))
+print(colSums(alphabetFrequency(seqence_train)))
+print(colSums(alphabetFrequency(seqence_val)))
+print(colSums(alphabetFrequency(seqence_test)))
 ```
 
 
