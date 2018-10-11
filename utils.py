@@ -6,7 +6,7 @@ from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 
 
 def write_big_pickle(obj, file_path, max_bytes=2**31 - 1):
-    # write
+    """write a big file (> 2GB) with pickle"""
     bytes_out = pickle.dumps(obj)
     with open(file_path, 'wb') as f_out:
         for idx in range(0, len(bytes_out), max_bytes):
@@ -14,7 +14,7 @@ def write_big_pickle(obj, file_path, max_bytes=2**31 - 1):
 
 
 def read_big_pickle(file_path, max_bytes=2**31 - 1):
-    # read
+    """read a big file (> 2GB) with pickle"""
     bytes_in = bytearray(0)
     input_size = os.path.getsize(file_path)
     with open(file_path, 'rb') as f_in:
@@ -25,7 +25,11 @@ def read_big_pickle(file_path, max_bytes=2**31 - 1):
 
 def onehot_encode(seq):
     """
-    one-hot encode a DNA sequence that contains alphabet of ["A", "C", "G", "T", "N"]
+    one-hot encode a DNA sequence 
+    
+    keyword arguments:
+    seq -- a string of DNA sequence that contains alphabet of ["A", "C", "G", "T", "N"]
+    
     A -> [1, 0, 0, 0]
     C -> [0, 1, 0, 0]
     G -> [0, 0, 1, 0]
