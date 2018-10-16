@@ -2,13 +2,14 @@
 
 import matplotlib.pyplot as plt
 
-def plot_train_histories(histories):
+
+def plot_multi_train_histories(histories):
     plt.clf()
     train_mae = []
     val_mae = []
     
     loss = []
-    val_loss= []
+    val_loss = []
     for history in histories:
         for error in history.history['mean_absolute_error']:
             train_mae.append(error)
@@ -26,7 +27,6 @@ def plot_train_histories(histories):
     plt.legend()
     plt.show()
     
-    
     plt.plot(epochs, loss, 'b', label='Training loss')
     plt.plot(epochs, val_loss, 'r', label='val loss')
     plt.title('model loss')
@@ -35,6 +35,24 @@ def plot_train_histories(histories):
     plt.legend(['train', 'val'], loc='upper left')
     plt.show()
 
+
+def plot_train_histories(histories):
+    for history in histories:
+        epochs = range(1, len(history['loss']) + 1)
+
+        plt.plot(epochs, history["mean_absolute_error"], 'b', label='Training mae')
+        plt.plot(epochs, history["val_mean_absolute_error"], 'r', label='val mae')
+        plt.title('mean absolute error')
+        plt.legend()
+        plt.show()
+
+        plt.plot(epochs, history["loss"], 'b', label='Training loss')
+        plt.plot(epochs, history["val_loss"], 'r', label='val loss')
+        plt.title('model loss')
+        plt.ylabel('loss')
+        plt.xlabel('epoch')
+        plt.legend(['train', 'val'], loc='upper left')
+        plt.show()
 
 
 def line_pred_vs_expr(pred_log, expr_log):
